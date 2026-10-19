@@ -406,8 +406,3 @@ namespace Rynix_Compiler
     }
 }
 
-namespace JASON_Compiler
-{
-    public class Token : Rynix_Compiler.Token { }
-    public class Scanner : Rynix_Compiler.Scanner { }
-}
