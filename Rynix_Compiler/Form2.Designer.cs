@@ -124,7 +124,7 @@
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(134, 24);
             this.label1.TabIndex = 6;
-            this.label1.Text = "JASON Code";
+            this.label1.Text = "Rynix Code";
             // 
             // label2
             // 
