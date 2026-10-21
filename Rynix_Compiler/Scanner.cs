@@ -317,10 +317,11 @@ namespace Rynix_Compiler
         {
             Token Tok = new Token();
             Tok.lex = Lex;
-
+            
             // Is it a reserved word?
             if (ReservedWords.ContainsKey(Lex))
             {
+
                 Tok.token_type = ReservedWords[Lex];
                 Tokens.Add(Tok);
             }
@@ -387,10 +388,15 @@ namespace Rynix_Compiler
 
         bool isStringLiteral(string lex)
         {
+            bool isValid = true;
+
             if (string.IsNullOrEmpty(lex)) return false;
-            if (lex.Length >= 2 && lex.StartsWith("\"") && lex.EndsWith("\""))
-                return true;
-            return false;
+            //if (lex.Length >= 2 && lex.StartsWith("\"") && lex.EndsWith("\""))
+            //    return true;
+            //return false;
+            Regex rx = new Regex(@"^""([^""\\\r\n]|\\.)*""$");
+            isValid = rx.IsMatch(lex);
+            return isValid;
         }
 
         bool isCharLiteral(string lex)
