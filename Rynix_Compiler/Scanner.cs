@@ -7,26 +7,26 @@ using System.Threading.Tasks;
 
 public enum Token_Class
 {
-    // Reserved Words (Keywords)
+    // RW
     Var, Val, Fun, Class, If, Else, While, For, In, Return,
     True, False, Null, New, Print, Input, Break, Continue, Init,
 
-    // Data Types
+    // DT
     Int, Float, String, Bool, Char, Array, Void,
 
-    // Delimiters & Punctuation
+    // DL
     Dot, Semicolon, Colon, Comma,
     LParanthesis, RParanthesis,
     LBrace, RBrace,
     LBracket, RBracket,
 
-    // Operators
+    // Op
     EqualOp, NotEqualOp, LessThanOp, GreaterThanOp,
     LessEqualOp, GreaterEqualOp,
     PlusOp, MinusOp, MultiplyOp, DivideOp, ModOp,
     AssignOp, RangeOp,
 
-    // Identifiers & Literals
+    // ID , Num, SL , CL
     Identifier,
     Constant,
     StringLiteral,
@@ -49,7 +49,7 @@ namespace Rynix_Compiler
 
         public Scanner()
         {
-            // Reserved Words (Keywords)
+            // RW
             ReservedWords.Add("var", Token_Class.Var);
             ReservedWords.Add("val", Token_Class.Val);
             ReservedWords.Add("fun", Token_Class.Fun);
@@ -70,7 +70,7 @@ namespace Rynix_Compiler
             ReservedWords.Add("continue", Token_Class.Continue);
             ReservedWords.Add("init", Token_Class.Init);
 
-            // Data Types
+            // DT
             ReservedWords.Add("Int", Token_Class.Int);
             ReservedWords.Add("Float", Token_Class.Float);
             ReservedWords.Add("String", Token_Class.String);
@@ -79,7 +79,7 @@ namespace Rynix_Compiler
             ReservedWords.Add("Array", Token_Class.Array);
             ReservedWords.Add("Void", Token_Class.Void);
 
-            // Delimiters
+            // DL
             Operators.Add(".", Token_Class.Dot);
             Operators.Add(";", Token_Class.Semicolon);
             Operators.Add(":", Token_Class.Colon);
@@ -91,7 +91,7 @@ namespace Rynix_Compiler
             Operators.Add("[", Token_Class.LBracket);
             Operators.Add("]", Token_Class.RBracket);
 
-            // Operators
+            // Op
             Operators.Add("+", Token_Class.PlusOp);
             Operators.Add("-", Token_Class.MinusOp);
             Operators.Add("*", Token_Class.MultiplyOp);
@@ -116,14 +116,12 @@ namespace Rynix_Compiler
             {
                 char CurrentChar = SourceCode[i];
 
-                // 1. Whitespace
+
                 if (CurrentChar == ' ' || CurrentChar == '\t' || CurrentChar == '\r' || CurrentChar == '\n')
                     continue;
 
-                // 2. Comments
                 if (CurrentChar == '/')
                 {
-                    // Single-line comment: // ...
                     if (i + 1 < SourceCode.Length && SourceCode[i + 1] == '/')
                     {
                         int j = i + 2;
@@ -134,7 +132,6 @@ namespace Rynix_Compiler
                         i = j - 1;
                         continue;
                     }
-                    // Multi-line comment: /* ... */
                     else if (i + 1 < SourceCode.Length && SourceCode[i + 1] == '*')
                     {
                         int j = i + 2;
@@ -161,7 +158,6 @@ namespace Rynix_Compiler
                     }
                 }
 
-                // 3. String Literal: "..."
                 if (CurrentChar == '\"')
                 {
                     int j = i + 1;
@@ -193,7 +189,6 @@ namespace Rynix_Compiler
                     continue;
                 }
 
-                // 4. Character Literal: '...'
                 if (CurrentChar == '\'')
                 {
                     int j = i + 1;
@@ -225,7 +220,6 @@ namespace Rynix_Compiler
                     continue;
                 }
 
-                // 5. Identifiers or Keywords (begins with letter or underscore)
                 if (char.IsLetter(CurrentChar) || CurrentChar == '_')
                 {
                     int j = i;
@@ -239,7 +233,6 @@ namespace Rynix_Compiler
                     continue;
                 }
 
-                // 6. Numbers (Integer / Float / Invalid tokens starting with digit)
                 if (char.IsDigit(CurrentChar))
                 {
                     int j = i;
@@ -248,17 +241,10 @@ namespace Rynix_Compiler
                         j++;
                     }
 
-                    // Check for decimal point vs range operator '..'
                     if (j < SourceCode.Length && SourceCode[j] == '.')
                     {
-                        // If followed by another dot, it's the range operator '..' -> stop scanning number
-                        if (j + 1 < SourceCode.Length && SourceCode[j + 1] == '.')
+                        if (j + 1 < SourceCode.Length && char.IsDigit(SourceCode[j + 1]))
                         {
-                            // Do not consume '.'
-                        }
-                        else if (j + 1 < SourceCode.Length && char.IsDigit(SourceCode[j + 1]))
-                        {
-                            // Float constant: consume '.' and fractional digits
                             j++;
                             while (j < SourceCode.Length && char.IsDigit(SourceCode[j]))
                             {
@@ -267,12 +253,10 @@ namespace Rynix_Compiler
                         }
                     }
 
-                    // Check if letters or underscores or extra dots are attached (e.g. 1user, 12a, 1.2.3)
                     if (j < SourceCode.Length && (char.IsLetter(SourceCode[j]) || SourceCode[j] == '_' || SourceCode[j] == '.'))
                     {
                         while (j < SourceCode.Length && (char.IsLetterOrDigit(SourceCode[j]) || SourceCode[j] == '_' || SourceCode[j] == '.'))
                         {
-                            // Stop if range operator '..' is encountered
                             if (SourceCode[j] == '.' && j + 1 < SourceCode.Length && SourceCode[j + 1] == '.')
                                 break;
                             j++;
@@ -285,8 +269,6 @@ namespace Rynix_Compiler
                     continue;
                 }
 
-                // 7. Operators and Delimiters
-                // Check 2-character operators first (==, !=, <=, >=, ..)
                 if (i + 1 < SourceCode.Length)
                 {
                     string twoChar = SourceCode.Substring(i, 2);
@@ -298,15 +280,12 @@ namespace Rynix_Compiler
                     }
                 }
 
-                // Check 1-character operators and delimiters
                 string oneChar = CurrentChar.ToString();
                 if (Operators.ContainsKey(oneChar))
                 {
                     FindTokenClass(oneChar);
                     continue;
                 }
-                // int = 0
-                // 8. Undefined / Invalid character
                 FindTokenClass(oneChar);
             }
 
@@ -366,10 +345,8 @@ namespace Rynix_Compiler
         {
             bool isValid = true;
             if (string.IsNullOrEmpty(lex)) return false;
-            // Reserved words cannot be used as identifiers
             if (ReservedWords.ContainsKey(lex)) return false;
 
-            // Must begin with a letter or underscore, followed by letters, digits, or underscores
             Regex rx = new Regex(@"^[a-zA-Z_][a-zA-Z0-9_]*$");
             isValid = rx.IsMatch(lex);
             return isValid;
@@ -380,7 +357,6 @@ namespace Rynix_Compiler
             bool isValid = true;
             if (string.IsNullOrEmpty(lex)) return false;
 
-            // Integer or Floating-point number (optional negative sign)
             Regex rx = new Regex(@"^-?[0-9]+(\.[0-9]+)?$");
             isValid = rx.IsMatch(lex);
             return isValid;
