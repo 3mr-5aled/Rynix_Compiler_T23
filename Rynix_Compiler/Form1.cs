@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -14,15 +15,200 @@ namespace Rynix_Compiler
     {
         private TextBoxScrollWatcher _scrollWatcher;
 
+        [DllImport("user32.dll")]
+        public static extern bool ReleaseCapture();
+
+        [DllImport("user32.dll")]
+        public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+
+        private const int WM_NCLBUTTONDOWN = 0xA1;
+        private const int HT_CAPTION = 0x2;
+
+        private const int WM_NCHITTEST = 0x84;
+        private const int HTCLIENT = 1;
+        private const int HTLEFT = 10;
+        private const int HTRIGHT = 11;
+        private const int HTTOP = 12;
+        private const int HTTOPLEFT = 13;
+        private const int HTTOPRIGHT = 14;
+        private const int HTBOTTOM = 15;
+        private const int HTBOTTOMLEFT = 16;
+        private const int HTBOTTOMRIGHT = 17;
+
         public Form1()
         {
             InitializeComponent();
+            SetupTitleBarButtons();
+            SetupActionButtons();
             SetupEditorLineNumbers();
+        }
+
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                CreateParams cp = base.CreateParams;
+                cp.Style |= 0x20000; // WS_MINIMIZEBOX
+                cp.ClassStyle |= 0x20000; // CS_DROPSHADOW
+                return cp;
+            }
+        }
+
+        private void SetupTitleBarButtons()
+        {
+            btnMinimize.MouseEnter += (s, e) => { btnMinimize.BackColor = Color.FromArgb(39, 48, 67); btnMinimize.Invalidate(); };
+            btnMinimize.MouseLeave += (s, e) => { btnMinimize.BackColor = Color.Transparent; btnMinimize.Invalidate(); };
+
+            btnMaximize.MouseEnter += (s, e) => { btnMaximize.BackColor = Color.FromArgb(39, 48, 67); btnMaximize.Invalidate(); };
+            btnMaximize.MouseLeave += (s, e) => { btnMaximize.BackColor = Color.Transparent; btnMaximize.Invalidate(); };
+
+            btnClose.MouseEnter += (s, e) => { btnClose.BackColor = Color.FromArgb(220, 38, 38); btnClose.ForeColor = Color.White; btnClose.Invalidate(); };
+            btnClose.MouseLeave += (s, e) => { btnClose.BackColor = Color.Transparent; btnClose.ForeColor = Color.FromArgb(148, 163, 184); btnClose.Invalidate(); };
+        }
+
+        private void SetupActionButtons()
+        {
+            button1.MouseEnter += (s, e) => button1.BackColor = Color.FromArgb(29, 78, 216);
+            button1.MouseLeave += (s, e) => button1.BackColor = Color.FromArgb(37, 99, 235);
+
+            button2.MouseEnter += (s, e) => button2.BackColor = Color.FromArgb(226, 232, 240);
+            button2.MouseLeave += (s, e) => button2.BackColor = Color.FromArgb(241, 245, 249);
+        }
+
+        private void btnMinimize_Paint(object sender, PaintEventArgs e)
+        {
+            using (var pen = new Pen(btnMinimize.ForeColor, 1.4f))
+            {
+                int midY = btnMinimize.Height / 2 + 1;
+                int midX = btnMinimize.Width / 2;
+                e.Graphics.DrawLine(pen, midX - 5, midY, midX + 5, midY);
+            }
+        }
+
+        private void btnMaximize_Paint(object sender, PaintEventArgs e)
+        {
+            using (var pen = new Pen(btnMaximize.ForeColor, 1.2f))
+            {
+                int midX = btnMaximize.Width / 2;
+                int midY = btnMaximize.Height / 2;
+                if (this.WindowState == FormWindowState.Maximized)
+                {
+                    e.Graphics.DrawRectangle(pen, midX - 2, midY - 6, 8, 8);
+                    Color fill = btnMaximize.BackColor == Color.Transparent ? panelTitleBar.BackColor : btnMaximize.BackColor;
+                    using (var brush = new SolidBrush(fill))
+                    {
+                        e.Graphics.FillRectangle(brush, midX - 6, midY - 2, 8, 8);
+                    }
+                    e.Graphics.DrawRectangle(pen, midX - 6, midY - 2, 8, 8);
+                }
+                else
+                {
+                    e.Graphics.DrawRectangle(pen, midX - 5, midY - 5, 10, 10);
+                }
+            }
+        }
+
+        private void btnClose_Paint(object sender, PaintEventArgs e)
+        {
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            using (var pen = new Pen(btnClose.ForeColor, 1.5f))
+            {
+                int midX = btnClose.Width / 2;
+                int midY = btnClose.Height / 2;
+                e.Graphics.DrawLine(pen, midX - 4.5f, midY - 4.5f, midX + 4.5f, midY + 4.5f);
+                e.Graphics.DrawLine(pen, midX + 4.5f, midY - 4.5f, midX - 4.5f, midY + 4.5f);
+            }
+        }
+
+        private void TitleBar_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                if (e.Clicks == 2)
+                {
+                    ToggleMaximize();
+                }
+                else
+                {
+                    ReleaseCapture();
+                    SendMessage(this.Handle, WM_NCLBUTTONDOWN, HT_CAPTION, 0);
+                }
+            }
+        }
+
+        private void btnMinimize_Click(object sender, EventArgs e)
+        {
+            this.WindowState = FormWindowState.Minimized;
+        }
+
+        private void btnMaximize_Click(object sender, EventArgs e)
+        {
+            ToggleMaximize();
+        }
+
+        private void btnClose_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void ToggleMaximize()
+        {
+            if (this.WindowState == FormWindowState.Maximized)
+            {
+                this.WindowState = FormWindowState.Normal;
+            }
+            else
+            {
+                this.MaximizedBounds = Screen.FromHandle(this.Handle).WorkingArea;
+                this.WindowState = FormWindowState.Maximized;
+            }
+            if (btnMaximize != null)
+            {
+                btnMaximize.Invalidate();
+            }
+        }
+
+        protected override void OnResize(EventArgs e)
+        {
+            base.OnResize(e);
+            if (btnMaximize != null)
+            {
+                btnMaximize.Invalidate();
+            }
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == WM_NCHITTEST && this.WindowState != FormWindowState.Maximized)
+            {
+                base.WndProc(ref m);
+                if ((int)m.Result == HTCLIENT)
+                {
+                    Point cursor = this.PointToClient(Cursor.Position);
+                    const int resizeBorder = 6;
+
+                    bool left = cursor.X <= resizeBorder;
+                    bool right = cursor.X >= this.ClientSize.Width - resizeBorder;
+                    bool top = cursor.Y <= resizeBorder;
+                    bool bottom = cursor.Y >= this.ClientSize.Height - resizeBorder;
+
+                    if (top && left) m.Result = (IntPtr)HTTOPLEFT;
+                    else if (top && right) m.Result = (IntPtr)HTTOPRIGHT;
+                    else if (bottom && left) m.Result = (IntPtr)HTBOTTOMLEFT;
+                    else if (bottom && right) m.Result = (IntPtr)HTBOTTOMRIGHT;
+                    else if (left) m.Result = (IntPtr)HTLEFT;
+                    else if (right) m.Result = (IntPtr)HTRIGHT;
+                    else if (top) m.Result = (IntPtr)HTTOP;
+                    else if (bottom) m.Result = (IntPtr)HTBOTTOM;
+                }
+                return;
+            }
+
+            base.WndProc(ref m);
         }
 
         private void SetupEditorLineNumbers()
         {
-            // Enable double buffering for line number panel to avoid flicker
             try
             {
                 typeof(Panel).InvokeMember("DoubleBuffered",
@@ -33,7 +219,6 @@ namespace Rynix_Compiler
             }
             catch
             {
-                // Ignore if reflection fails in restricted environment
             }
 
             textBox1.TextChanged += (s, e) =>
@@ -84,8 +269,7 @@ namespace Rynix_Compiler
         {
             e.Graphics.Clear(panelLineNumbers.BackColor);
 
-            // Subtle vertical separator line on the right edge
-            using (var pen = new Pen(Color.FromArgb(220, 220, 220)))
+            using (var pen = new Pen(Color.FromArgb(203, 213, 225)))
             {
                 e.Graphics.DrawLine(pen, panelLineNumbers.Width - 1, 0, panelLineNumbers.Width - 1, panelLineNumbers.Height);
             }
@@ -100,7 +284,7 @@ namespace Rynix_Compiler
 
             int fontHeight = TextRenderer.MeasureText("1", textBox1.Font).Height;
 
-            using (var brush = new SolidBrush(Color.FromArgb(130, 130, 130)))
+            using (var brush = new SolidBrush(Color.FromArgb(100, 116, 139)))
             using (var sf = new StringFormat { Alignment = StringAlignment.Far, LineAlignment = StringAlignment.Near })
             {
                 int line = firstLine;
@@ -120,7 +304,6 @@ namespace Rynix_Compiler
                     line++;
                 }
 
-                // If user text ends with a newline, show that trailing empty line's number
                 if (textBox1.Text.EndsWith("\n") || textBox1.Text.EndsWith("\r"))
                 {
                     int lastChar = textBox1.TextLength > 0 ? textBox1.TextLength - 1 : 0;
@@ -179,12 +362,12 @@ namespace Rynix_Compiler
             if (errorCount == 0)
             {
                 lblStatus.Text = string.Format("Compiled successfully: {0} tokens.", tokenCount);
-                lblStatus.ForeColor = Color.DarkGreen;
+                lblStatus.ForeColor = Color.FromArgb(5, 150, 105);
             }
             else
             {
                 lblStatus.Text = string.Format("Completed with {0} error(s) and {1} tokens.", errorCount, tokenCount);
-                lblStatus.ForeColor = Color.DarkRed;
+                lblStatus.ForeColor = Color.FromArgb(220, 38, 38);
             }
         }
 
@@ -205,9 +388,20 @@ namespace Rynix_Compiler
         {
             listBoxErrors.BeginUpdate();
             listBoxErrors.Items.Clear();
-            for (int i = 0; i < Errors.Error_List.Count; i++)
+            if (Errors.DetailedErrors.Count > 0)
             {
-                listBoxErrors.Items.Add(string.Format("[Error {0}] {1}", i + 1, Errors.Error_List[i]));
+                for (int i = 0; i < Errors.DetailedErrors.Count; i++)
+                {
+                    var err = Errors.DetailedErrors[i];
+                    listBoxErrors.Items.Add(string.Format("[Line {0}] [Error {1}] {2}", err.Line, i + 1, err.Lexeme));
+                }
+            }
+            else
+            {
+                for (int i = 0; i < Errors.Error_List.Count; i++)
+                {
+                    listBoxErrors.Items.Add(string.Format("[Error {0}] {1}", i + 1, Errors.Error_List[i]));
+                }
             }
             listBoxErrors.EndUpdate();
         }
@@ -215,12 +409,38 @@ namespace Rynix_Compiler
         private void listBoxErrors_SelectedIndexChanged(object sender, EventArgs e)
         {
             int index = listBoxErrors.SelectedIndex;
+            if (index >= 0 && index < Errors.DetailedErrors.Count)
+            {
+                var err = Errors.DetailedErrors[index];
+                if (err.StartIndex >= 0 && err.StartIndex + err.Length <= textBox1.TextLength)
+                {
+                    textBox1.Focus();
+                    textBox1.Select(err.StartIndex, err.Length);
+                    textBox1.ScrollToCaret();
+                    return;
+                }
+
+                int lineIndex = Math.Max(0, err.Line - 1);
+                int lineStart = textBox1.GetFirstCharIndexFromLine(lineIndex);
+                if (lineStart >= 0)
+                {
+                    int posOnLine = textBox1.Text.IndexOf(err.Lexeme, lineStart, StringComparison.Ordinal);
+                    if (posOnLine >= 0)
+                    {
+                        textBox1.Focus();
+                        textBox1.Select(posOnLine, err.Length);
+                        textBox1.ScrollToCaret();
+                        return;
+                    }
+                }
+            }
+
             if (index >= 0 && index < Errors.Error_List.Count)
             {
                 string errLexeme = Errors.Error_List[index];
                 if (!string.IsNullOrEmpty(errLexeme))
                 {
-                    int pos = textBox1.Text.IndexOf(errLexeme, StringComparison.Ordinal);
+                    int pos = textBox1.Text.LastIndexOf(errLexeme, StringComparison.Ordinal);
                     if (pos >= 0)
                     {
                         textBox1.Focus();
@@ -245,9 +465,9 @@ namespace Rynix_Compiler
             listBoxErrors.Items.Clear();
             Rynix_Compiler.TokenStream.Clear();
             Rynix_Compiler.Rynix_Scanner.Tokens.Clear();
-            Errors.Error_List.Clear();
+            Errors.Clear();
             lblStatus.Text = "Cleared.";
-            lblStatus.ForeColor = Color.DimGray;
+            lblStatus.ForeColor = Color.FromArgb(71, 85, 105);
         }
 
         private void textBox2_TextChanged(object sender, EventArgs e)

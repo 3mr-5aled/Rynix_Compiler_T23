@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,7 +15,7 @@ public enum Token_Class
     Int, Float, String, Bool, Char, Array, Void,
 
     // DL
-    Dot, Semicolon, Colon, Comma,
+    Dot, Colon, Comma,
     LParanthesis, RParanthesis,
     LBrace, RBrace,
     LBracket, RBracket,
@@ -81,7 +81,6 @@ namespace Rynix_Compiler
 
             // DL
             Operators.Add(".", Token_Class.Dot);
-            Operators.Add(";", Token_Class.Semicolon);
             Operators.Add(":", Token_Class.Colon);
             Operators.Add(",", Token_Class.Comma);
             Operators.Add("(", Token_Class.LParanthesis);
@@ -110,14 +109,20 @@ namespace Rynix_Compiler
         public void StartScanning(string SourceCode)
         {
             Tokens.Clear();
-            Errors.Error_List.Clear();
+            Errors.Clear();
+
+            int currentLine = 1;
 
             for (int i = 0; i < SourceCode.Length; i++)
             {
                 char CurrentChar = SourceCode[i];
 
-
-                if (CurrentChar == ' ' || CurrentChar == '\t' || CurrentChar == '\r' || CurrentChar == '\n')
+                if (CurrentChar == '\n')
+                {
+                    currentLine++;
+                    continue;
+                }
+                if (CurrentChar == ' ' || CurrentChar == '\t' || CurrentChar == '\r')
                     continue;
 
                 if (CurrentChar == '/')
@@ -138,6 +143,10 @@ namespace Rynix_Compiler
                         bool closed = false;
                         while (j + 1 < SourceCode.Length)
                         {
+                            if (SourceCode[j] == '\n')
+                            {
+                                currentLine++;
+                            }
                             if (SourceCode[j] == '*' && SourceCode[j + 1] == '/')
                             {
                                 closed = true;
@@ -149,7 +158,7 @@ namespace Rynix_Compiler
                         if (!closed)
                         {
                             string unclosedComment = SourceCode.Substring(i);
-                            Errors.Error_List.Add(unclosedComment);
+                            Errors.AddError(unclosedComment, i, unclosedComment.Length, currentLine);
                             i = SourceCode.Length;
                             break;
                         }
@@ -158,15 +167,18 @@ namespace Rynix_Compiler
                     }
                 }
 
+
                 if (CurrentChar == '\"')
                 {
                     int j = i + 1;
                     bool closed = false;
                     while (j < SourceCode.Length)
                     {
-                        if (SourceCode[j] == '\r' || SourceCode[j] == '\n')
+                        if (SourceCode[j] == '\r' || SourceCode[j] == '\n') break;
+                        if (SourceCode[j] == '\\' && j + 1 < SourceCode.Length)
                         {
-                            break;
+                            j += 2;
+                            continue;
                         }
                         if (SourceCode[j] == '\"')
                         {
@@ -179,11 +191,11 @@ namespace Rynix_Compiler
                     string currentLexeme = SourceCode.Substring(i, j - i);
                     if (!closed)
                     {
-                        Errors.Error_List.Add(currentLexeme);
+                        Errors.AddError(currentLexeme, i, currentLexeme.Length, currentLine);
                     }
                     else
                     {
-                        FindTokenClass(currentLexeme);
+                        FindTokenClass(currentLexeme, i, currentLine);
                     }
                     i = j - 1;
                     continue;
@@ -199,6 +211,11 @@ namespace Rynix_Compiler
                         {
                             break;
                         }
+                        if (SourceCode[j] == '\\' && j + 1 < SourceCode.Length)
+                        {
+                            j += 2;
+                            continue;
+                        }
                         if (SourceCode[j] == '\'')
                         {
                             closed = true;
@@ -210,11 +227,11 @@ namespace Rynix_Compiler
                     string currentLexeme = SourceCode.Substring(i, j - i);
                     if (!closed || (currentLexeme.Length != 3 && !(currentLexeme.Length == 4 && currentLexeme[1] == '\\')))
                     {
-                        Errors.Error_List.Add(currentLexeme);
+                        Errors.AddError(currentLexeme, i, currentLexeme.Length, currentLine);
                     }
                     else
                     {
-                        FindTokenClass(currentLexeme);
+                        FindTokenClass(currentLexeme, i, currentLine);
                     }
                     i = j - 1;
                     continue;
@@ -228,7 +245,7 @@ namespace Rynix_Compiler
                         j++;
                     }
                     string currentLexeme = SourceCode.Substring(i, j - i);
-                    FindTokenClass(currentLexeme);
+                    FindTokenClass(currentLexeme, i, currentLine);
                     i = j - 1;
                     continue;
                 }
@@ -264,7 +281,7 @@ namespace Rynix_Compiler
                     }
 
                     string currentLexeme = SourceCode.Substring(i, j - i);
-                    FindTokenClass(currentLexeme);
+                    FindTokenClass(currentLexeme, i, currentLine);
                     i = j - 1;
                     continue;
                 }
@@ -274,7 +291,7 @@ namespace Rynix_Compiler
                     string twoChar = SourceCode.Substring(i, 2);
                     if (Operators.ContainsKey(twoChar))
                     {
-                        FindTokenClass(twoChar);
+                        FindTokenClass(twoChar, i, currentLine);
                         i++;
                         continue;
                     }
@@ -283,16 +300,16 @@ namespace Rynix_Compiler
                 string oneChar = CurrentChar.ToString();
                 if (Operators.ContainsKey(oneChar))
                 {
-                    FindTokenClass(oneChar);
+                    FindTokenClass(oneChar, i, currentLine);
                     continue;
                 }
-                FindTokenClass(oneChar);
+                FindTokenClass(oneChar, i, currentLine);
             }
 
             Rynix_Compiler.TokenStream = Tokens;
         }
 
-        void FindTokenClass(string Lex)
+        void FindTokenClass(string Lex, int startIndex = -1, int line = 1)
         {
             Token Tok = new Token();
             Tok.lex = Lex;
@@ -337,7 +354,7 @@ namespace Rynix_Compiler
             // Is it an undefined?
             else
             {
-                Errors.Error_List.Add(Lex);
+                Errors.AddError(Lex, startIndex, Lex.Length, line);
             }
         }
 
@@ -367,9 +384,6 @@ namespace Rynix_Compiler
             bool isValid = true;
 
             if (string.IsNullOrEmpty(lex)) return false;
-            //if (lex.Length >= 2 && lex.StartsWith("\"") && lex.EndsWith("\""))
-            //    return true;
-            //return false;
             Regex rx = new Regex(@"^""([^""\\\r\n]|\\.)*""$");
             isValid = rx.IsMatch(lex);
             return isValid;
@@ -387,4 +401,3 @@ namespace Rynix_Compiler
         }
     }
 }
-
