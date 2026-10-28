@@ -15,7 +15,7 @@ public enum Token_Class
     Int, Float, String, Bool, Char, Array, Void,
 
     // DL
-    Dot, Semicolon, Colon, Comma,
+    Dot, Colon, Comma,
     LParanthesis, RParanthesis,
     LBrace, RBrace,
     LBracket, RBracket,
@@ -81,7 +81,6 @@ namespace Rynix_Compiler
 
             // DL
             Operators.Add(".", Token_Class.Dot);
-            Operators.Add(";", Token_Class.Semicolon);
             Operators.Add(":", Token_Class.Colon);
             Operators.Add(",", Token_Class.Comma);
             Operators.Add("(", Token_Class.LParanthesis);
@@ -168,6 +167,11 @@ namespace Rynix_Compiler
                         {
                             break;
                         }
+                        if (SourceCode[j] == '\\' && j + 1 < SourceCode.Length)
+                        {
+                            j += 2;
+                            continue;
+                        }
                         if (SourceCode[j] == '\"')
                         {
                             closed = true;
@@ -198,6 +202,11 @@ namespace Rynix_Compiler
                         if (SourceCode[j] == '\r' || SourceCode[j] == '\n')
                         {
                             break;
+                        }
+                        if (SourceCode[j] == '\\' && j + 1 < SourceCode.Length)
+                        {
+                            j += 2;
+                            continue;
                         }
                         if (SourceCode[j] == '\'')
                         {
