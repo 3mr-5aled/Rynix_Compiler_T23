@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rynix_Compiler;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -305,7 +306,7 @@ namespace Rynix_Compiler
         {
             Token Tok = new Token();
             Tok.lex = Lex;
-            
+
             // Is it a reserved word?
             if (ReservedWords.ContainsKey(Lex))
             {
