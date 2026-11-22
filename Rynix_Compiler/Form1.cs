@@ -20,7 +20,7 @@ namespace Rynix_Compiler
         private void button1_Click(object sender, EventArgs e)
         {
             textBox2.Clear();
-            string Code=textBox1.Text.ToLower();
+            string Code=textBox1.Text;
             Rynix_Compiler.Start_Compiling(Code);
             PrintTokens();
             treeView1.Nodes.Add(Parser.PrintParseTree(Rynix_Compiler.treeroot));

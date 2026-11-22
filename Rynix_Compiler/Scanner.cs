@@ -10,7 +10,7 @@ public enum Token_Class
 {
     // RW
     Var, Val, Fun, Class, If, Else, While, For, In, Return,
-    True, False, Null, New, Print, Input, Break, Continue, Init,
+    True, False, Null, New, Print, Input, Break, Continue, Init, Main ,
 
     // DT
     Int, Float, String, Bool, Char, Array, Void,
@@ -29,7 +29,8 @@ public enum Token_Class
 
     // ID , Num, SL , CL
     Identifier,
-    Constant,
+    IntegerLiteral,
+    FloatLiteral,
     StringLiteral,
     CharLiteral
 }
@@ -70,6 +71,7 @@ namespace Rynix_Compiler
             ReservedWords.Add("break", Token_Class.Break);
             ReservedWords.Add("continue", Token_Class.Continue);
             ReservedWords.Add("init", Token_Class.Init);
+            ReservedWords.Add("main", Token_Class.Main);
 
             // DT
             ReservedWords.Add("Int", Token_Class.Int);
@@ -327,9 +329,22 @@ namespace Rynix_Compiler
                 Tokens.Add(Tok);
             }
             // Is it a Constant?
-            else if (isConstant(Lex))
+            //else if (isConstant(Lex))
+            //{
+            //    Tok.token_type = Token_Class.Constant;
+            //    Tokens.Add(Tok);
+            //}
+            
+            //Is it a IntegerLiteral?
+            else if (isIntegerLiteral(Lex))
             {
-                Tok.token_type = Token_Class.Constant;
+                Tok.token_type = Token_Class.IntegerLiteral;
+                Tokens.Add(Tok);
+            }
+            // Is it a FloatLiteral?
+            else if (isFloatLiteral(Lex))
+            {
+                Tok.token_type = Token_Class.FloatLiteral;
                 Tokens.Add(Tok);
             }
             // Is it a String Literal?
@@ -347,7 +362,7 @@ namespace Rynix_Compiler
             // Is it an undefined?
             else
             {
-                Errors.Error_List.Add(Lex);
+                Errors.Error_List.Add("Lexical Error:' "+Lex+" ' ");
             }
         }
 
@@ -362,14 +377,25 @@ namespace Rynix_Compiler
             return isValid;
         }
 
-        bool isConstant(string lex)
-        {
-            bool isValid = true;
-            if (string.IsNullOrEmpty(lex)) return false;
+        //bool isConstant(string lex)
+        //{
+        //    bool isValid = true;
+        //    if (string.IsNullOrEmpty(lex)) return false;
 
-            Regex rx = new Regex(@"^-?[0-9]+(\.[0-9]+)?$");
-            isValid = rx.IsMatch(lex);
-            return isValid;
+        //    Regex rx = new Regex(@"^-?[0-9]+(\.[0-9]+)?$");
+        //    isValid = rx.IsMatch(lex);
+        //    return isValid;
+        //}
+
+        bool isIntegerLiteral(string lex)
+        {
+            if (string.IsNullOrEmpty(lex)) return false;
+            return Regex.IsMatch(lex,@"^[0-9]+$");
+        }
+        bool isFloatLiteral(string lex)
+        {
+            if (string.IsNullOrEmpty(lex)) return false;
+            return Regex.IsMatch(lex, @"^[0-9]+\.[0-9]+$");
         }
 
         bool isStringLiteral(string lex)
