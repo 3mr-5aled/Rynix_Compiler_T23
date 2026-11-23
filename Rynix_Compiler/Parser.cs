@@ -85,6 +85,23 @@ namespace Rynix_Compiler
             return decls;
         }
 
+        // AssignValue → input ( ) | Expression
+        Node AssignValue()
+        {
+            Node assignValue = new Node("AssignValue");
+            if (InputPointer < TokenStream.Count && TokenStream[InputPointer].token_type == Token_Class.Input)
+            {
+                assignValue.Children.Add(match(Token_Class.Input));
+                assignValue.Children.Add(match(Token_Class.LParanthesis));
+                assignValue.Children.Add(match(Token_Class.RParanthesis));
+            }
+            else
+            {
+                assignValue.Children.Add(Expression());
+            }
+            return assignValue;
+        }
+
         // DeclTail → main ( ) : Void Block | identifier ( Parameters ) : ReturnType Block Declarations
         Node DeclTail()
         {
@@ -112,7 +129,7 @@ namespace Rynix_Compiler
             return declTail;
         }
 
-        // VarDecl → var identifier VarDeclTail | val identifier : Datatype = Expression
+        // VarDecl → var identifier VarDeclTail | val identifier : Datatype = AssignValue
         Node VarDecl()
         {
             Node varDecl = new Node("VarDecl");
@@ -129,12 +146,12 @@ namespace Rynix_Compiler
                 varDecl.Children.Add(match(Token_Class.Colon));
                 varDecl.Children.Add(Datatype());
                 varDecl.Children.Add(match(Token_Class.AssignOp));
-                varDecl.Children.Add(Expression());
+                varDecl.Children.Add(AssignValue());
             }
             return varDecl;
         }
 
-        // VarDeclTail → : Datatype VarInit | = Expression
+        // VarDeclTail → : Datatype VarInit | = AssignValue
         Node VarDeclTail()
         {
             Node varDeclTail = new Node("VarDeclTail");
@@ -147,21 +164,22 @@ namespace Rynix_Compiler
             else
             {
                 varDeclTail.Children.Add(match(Token_Class.AssignOp));
-                varDeclTail.Children.Add(Expression());
+                varDeclTail.Children.Add(AssignValue());
             }
             return varDeclTail;
         }
 
-        // VarInit → = Expression | ε
+        // VarInit → = AssignValue | ε
         Node VarInit()
         {
             Node varInit = new Node("VarInit");
             if (InputPointer < TokenStream.Count && TokenStream[InputPointer].token_type == Token_Class.AssignOp)
             {
                 varInit.Children.Add(match(Token_Class.AssignOp));
-                varInit.Children.Add(Expression());
+                varInit.Children.Add(AssignValue());
+                return varInit;
             }
-            return varInit;
+            return null;
         }
 
         // Datatype → Int | Float | String | Bool | Char | Array < Datatype > | identifier
@@ -215,8 +233,9 @@ namespace Rynix_Compiler
             {
                 parameters.Children.Add(Parameter());
                 parameters.Children.Add(ParametersPrime());
+                 return parameters;
             }
-            return parameters;
+            return null;
         }
 
         //Parameters' → , Parameter Parameters' | ε
@@ -228,8 +247,9 @@ namespace Rynix_Compiler
                 parametersPrime.Children.Add(match(Token_Class.Comma));
                 parametersPrime.Children.Add(Parameter());
                 parametersPrime.Children.Add(ParametersPrime());
+                return parametersPrime;
             }
-            return parametersPrime;
+            return null;
         }
 
         //Parameter → identifier : Datatype
@@ -274,8 +294,9 @@ namespace Rynix_Compiler
                     classMembersPrime.Children.Add(ClassMember());
                     classMembersPrime.Children.Add(ClassMembersPrime());
                 }
-            }
             return classMembersPrime;
+            }
+            return null;
         }
 
         // ClassMember → VarDecl | FunctionDecl | Constructor
@@ -353,8 +374,9 @@ namespace Rynix_Compiler
             {
                 statements.Children.Add(Statement());
                 statements.Children.Add(StatementsPrime());
+                return statements;
             }
-            return statements;
+            return null;
         }
 
         //Statements' → Statement Statements' | ε
@@ -365,8 +387,9 @@ namespace Rynix_Compiler
             {
                 statementsPrime.Children.Add(Statement());
                 statementsPrime.Children.Add(StatementsPrime());
+                return statementsPrime;
             }
-            return statementsPrime;
+            return null;
         }
 
         //Statement   → VarDecl | identifier LValueChain | IfStatement | WhileStatement | ForStatement | ReturnStatement | PrintStatement | BreakStatement | ContinueStatement | InputStatement
@@ -403,7 +426,7 @@ namespace Rynix_Compiler
             return statement;
         }
 
-        // LValueChain → . identifier LValueChain | [ Expression ] LValueChain | = Expression | ( ArgList ) CallChain
+        // LValueChain → . identifier LValueChain | [ Expression ] LValueChain | = AssignValue | ( ArgList ) CallChain
         Node LValueChain()
         {
             Node lValueChain = new Node("LValueChain");
@@ -426,7 +449,7 @@ namespace Rynix_Compiler
                 else if (t == Token_Class.AssignOp)
                 {
                     lValueChain.Children.Add(match(Token_Class.AssignOp));
-                    lValueChain.Children.Add(Expression());
+                    lValueChain.Children.Add(AssignValue());
                 }
                 else if (t == Token_Class.LParanthesis)
                 {
@@ -471,8 +494,9 @@ namespace Rynix_Compiler
                     callChain.Children.Add(match(Token_Class.RParanthesis));
                     callChain.Children.Add(CallChain());
                 }
+                return callChain;
             }
-            return callChain;
+            return null;
         }
 
         //BreakStatement    → break
@@ -532,8 +556,9 @@ namespace Rynix_Compiler
             {
                 ifStatementPrime.Children.Add(match(Token_Class.Else));
                 ifStatementPrime.Children.Add(Block());
+                return ifStatementPrime;
             }
-            return ifStatementPrime;
+            return null;
         }
 
         //WhileStatement → while Condition Block
@@ -575,8 +600,9 @@ namespace Rynix_Compiler
             {
                 rangeExpression.Children.Add(match(Token_Class.RangeOp));
                 rangeExpression.Children.Add(Expression());
+                return rangeExpression;
             }
-            return rangeExpression;
+            return null;
         }
 
         //ReturnStatement → return Expression
@@ -622,8 +648,9 @@ namespace Rynix_Compiler
                     relClause.Children.Add(RelOp());
                     relClause.Children.Add(Expression());
                 }
+                return relClause;
             }
-            return relClause;
+            return null;
         }
 
         //RelOp → == | != | > | < | >= | <=
@@ -670,8 +697,9 @@ namespace Rynix_Compiler
                     exp.Children.Add(Term());
                     exp.Children.Add(Exp());
                 }
+                return exp;
             }
-            return exp;
+            return null;
         }
 
         // AddOp → + | -
@@ -716,8 +744,9 @@ namespace Rynix_Compiler
                     ter.Children.Add(Factor());
                     ter.Children.Add(Ter());
                 }
+                return ter;
             }
-            return ter;
+            return null;
         }
 
         //MultOp → * | / | %
@@ -740,7 +769,7 @@ namespace Rynix_Compiler
             return multOp;
         }
 
-        //Factor     → Literal| - Number| identifier FactorTail| new identifier(ArgList )| input()| [Elements]
+        //Factor     → Literal| - Number| identifier FactorTail| new identifier(ArgList )| (Expression) | [Elements]
         Node Factor()
         {
             Node factor = new Node("Factor");
@@ -771,10 +800,10 @@ namespace Rynix_Compiler
                     factor.Children.Add(ArgList());
                     factor.Children.Add(match(Token_Class.RParanthesis));
                 }
-                else if (t == Token_Class.Input)
+                else if (t == Token_Class.LParanthesis)
                 {
-                    factor.Children.Add(match(Token_Class.Input));
                     factor.Children.Add(match(Token_Class.LParanthesis));
+                    factor.Children.Add(Expression());
                     factor.Children.Add(match(Token_Class.RParanthesis));
                 }
                 else if (t == Token_Class.LBracket)
@@ -872,8 +901,9 @@ namespace Rynix_Compiler
                     lvPrime.Children.Add(match(Token_Class.RBracket));
                     lvPrime.Children.Add(LValuePrime());
                 }
+                return lvPrime;
             }
-            return lvPrime;
+            return null;
         }
 
         // CallClause → ( ArgList ) | ε
@@ -885,8 +915,9 @@ namespace Rynix_Compiler
                 callClause.Children.Add(match(Token_Class.LParanthesis));
                 callClause.Children.Add(ArgList());
                 callClause.Children.Add(match(Token_Class.RParanthesis));
+                return callClause;
             }
-            return callClause;
+            return null;
         }
 
         //Elements → Expression Elem | ε
@@ -897,8 +928,9 @@ namespace Rynix_Compiler
             {
                 elements.Children.Add(Expression());
                 elements.Children.Add(Elem());
+                return elements;
             }
-            return elements;
+            return null;
         }
 
         //Elem → , Expression Elem | ε
@@ -910,8 +942,9 @@ namespace Rynix_Compiler
                 elem.Children.Add(match(Token_Class.Comma));
                 elem.Children.Add(Expression());
                 elem.Children.Add(Elem());
+                return elem;
             }
-            return elem;
+            return null;
         }
 
         //ArgList → Arguments | ε
@@ -921,8 +954,9 @@ namespace Rynix_Compiler
             if (InputPointer < TokenStream.Count && TokenStream[InputPointer].token_type != Token_Class.RParanthesis)
             {
                 argList.Children.Add(Arguments());
+                return argList;
             }
-            return argList;
+            return null;
         }
 
         //Arguments → Expression Arg
@@ -943,16 +977,10 @@ namespace Rynix_Compiler
                 arg.Children.Add(match(Token_Class.Comma));
                 arg.Children.Add(Expression());
                 arg.Children.Add(Arg());
+                return arg;
             }
-            return arg;
+            return null;
         }
-
-
-
-
-
-
-
 
         public Node match(Token_Class ExpectedToken)
         {

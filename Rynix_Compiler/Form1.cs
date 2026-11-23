@@ -16,11 +16,16 @@ namespace Rynix_Compiler
         {
             InitializeComponent();
         }
-
+        
         private void button1_Click(object sender, EventArgs e)
         {
             textBox2.Clear();
-            string Code=textBox1.Text;
+            treeView1.Nodes.Clear();
+            dataGridView1.Rows.Clear();
+            Rynix_Compiler.TokenStream.Clear();
+            Errors.Error_List.Clear();
+
+            string Code = textBox1.Text;
             Rynix_Compiler.Start_Compiling(Code);
             PrintTokens();
             treeView1.Nodes.Add(Parser.PrintParseTree(Rynix_Compiler.treeroot));
